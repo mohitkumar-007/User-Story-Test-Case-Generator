@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import * as XLSX from 'xlsx'
 import { generateTests, fetchJiraIssue } from './api'
 import { GenerateRequest, GenerateResponse, TestCase, JiraFetchRequest } from './types'
 
@@ -87,6 +88,24 @@ function App() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const exportToExcel = () => {
+    if (!results) return
+
+    const rows = results.cases.map((tc) => ({
+      'Test Case ID': tc.id,
+      'Title': tc.title,
+      'Category': tc.category,
+      'Steps': tc.steps.join('\n'),
+      'Test Data': tc.testData || '',
+      'Expected Result': tc.expectedResult,
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Test Cases')
+    XLSX.writeFile(wb, `test-cases-${Date.now()}.xlsx`)
   }
 
   return (
@@ -301,6 +320,23 @@ function App() {
         .submit-btn:disabled {
           background: #bdc3c7;
           cursor: not-allowed;
+        }
+
+        .export-btn {
+          background: #27ae60;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          margin-top: 12px;
+        }
+
+        .export-btn:hover {
+          background: #219a52;
         }
         
         .error-banner {
@@ -655,6 +691,13 @@ function App() {
                 {results.completionTokens > 0 && ` • Output tokens: ${results.completionTokens}`}
                 {results.cost && ` • Cost: $${results.cost.totalCost.toFixed(6)}${results.cost.estimated ? ' (est.)' : ''}`}
               </div>
+              <button
+                type="button"
+                className="export-btn"
+                onClick={exportToExcel}
+              >
+                📥 Export to Excel
+              </button>
             </div>
             
             <div className="table-container">
